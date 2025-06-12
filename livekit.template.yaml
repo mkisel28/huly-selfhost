@@ -6,7 +6,7 @@ rtc:
   port_range_start: 50000
   port_range_end: 50100
   use_external_ip: false
-  node_ip: localhost
+  node_ip: ${MAIN_DOMAIN}
   
 redis:
   address: redis:6379
