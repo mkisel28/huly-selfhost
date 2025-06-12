@@ -111,12 +111,72 @@ services:
       - STATS_URL=http://stats:4900
     restart: unless-stopped
 
+  # livekit:
+  #   image: livekit/livekit-server
+  #   ports:
+  #     - "7880:7880"   
+  #     - "9999:9999"
+  #     - "7881:7881"                # fallback TCP for media
+  #     - "3478:3478"                # TURN (UDP only)
+  #     - "50000-50060:50000-50060/udp"
+  #   volumes:
+  #     - ./livekit.yaml:/livekit.yaml
+  #   command: ["--config", "/livekit.yaml"]
+  #   restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/ingress:latest
+    container_name: ingress
+    restart: unless-stopped
+    ports:
+      - "7880:7880"
+      - "7881:7881"                # fallback TCP for media
+      - "9999:9999"                # HTTP API
+      - "3478:3478"                # TURN (UDP only)
+      - "8080:8080"
+    environment:
+      INGRESS_CONFIG_BODY: |
+        log_level: debug
+        api_key: APID2Y4BpYNTmGJ
+        api_secret: k22DLeMkmw0bp8ZeSng5MjUPRW4vxj0uXcB1RXJstNeB
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+    depends_on:
+      - redis
+
+  love:
+    image: hardcoreeng/love
+    container_name: love
+    ports:
+      - 8096:8096
+    environment:
+      - STORAGE_CONFIG=minio|minio?accessKey=minioadmin&secretKey=minioadmin
+      - SECRET=secret
+      - ACCOUNTS_URL=http://account:3000
+      - DB_URL=mongodb://mongodb:27017
+      - MONGO_URL=mongodb://mongodb:27017
+      - STORAGE_PROVIDER_NAME=minio
+      - PORT=8096
+      - LIVEKIT_HOST=ws://localhost:7880
+      - LIVEKIT_API_KEY=APID2Y4BpYNTmGJ
+      - LIVEKIT_API_SECRET=k22DLeMkmw0bp8ZeSng5MjUPRW4vxj0uXcB1RXJstNeB
+    restart: unless-stopped
+
   front:
     image: hardcoreeng/front:${HULY_VERSION}
     environment:
       - SERVER_PORT=8080
       - SERVER_SECRET=${SECRET}
-      - LOVE_ENDPOINT=http${SECURE:+s}://${HOST_ADDRESS}/_love
+      - LOVE_ENDPOINT=http://localhost:8096
+      - LIVEKIT_WS=ws://localhost:7880
       - ACCOUNTS_URL=http${SECURE:+s}://${HOST_ADDRESS}/_accounts
       - REKONI_URL=http${SECURE:+s}://${HOST_ADDRESS}/_rekoni
       - CALENDAR_URL=http${SECURE:+s}://${HOST_ADDRESS}/_calendar
@@ -130,7 +190,7 @@ services:
       - DB_URL=mongodb://mongodb:27017
       - MONGO_URL=mongodb://mongodb:27017
       - TITLE=${TITLE:-Huly Self Host}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-en}
+      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ru}
       - LAST_NAME_FIRST=${LAST_NAME_FIRST:-true}
       - DESKTOP_UPDATES_CHANNEL=selfhost
     restart: unless-stopped
@@ -154,6 +214,7 @@ services:
       - PORT=4900
       - SERVER_SECRET=${SECRET}
     restart: unless-stopped
+
 volumes:
   db:
   elastic:

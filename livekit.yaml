@@ -1,0 +1,16 @@
+port: 7880
+log_level: info
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50060
+  
+
+keys:
+  APID2Y4BpYNTmGJ: k22DLeMkmw0bp8ZeSng5MjUPRW4vxj0uXcB1RXJstNeB
+  
+
+turn:
+  enabled: true
+  udp_port: 3478
